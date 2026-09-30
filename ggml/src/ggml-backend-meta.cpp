@@ -1278,10 +1278,27 @@ static struct ggml_backend_meta_split_state ggml_backend_meta_get_split_state(
 #endif // NDEBUG
     return ret;
 }
+static struct ggml_backend_meta_split_state ggml_backend_meta_get_split_state(
+        const struct ggml_tensor * tensor, bool assume_sync) {
 
-static struct ggml_backend_meta_split_state ggml_backend_meta_get_split_state(const struct ggml_tensor * tensor, bool assume_sync) {
-    ggml_backend_meta_buffer_context * buf_ctx = (ggml_backend_meta_buffer_context *) tensor->buffer->context;
-    return ggml_backend_meta_get_split_state(buf_ctx->get_simple_tensor_container(tensor), tensor, assume_sync);
+    // External host-backed tensors are visible identically to every
+    // simple backend, so treat them as mirrored.
+    if (!ggml_backend_buffer_is_meta(tensor->buffer)) {
+        GGML_ASSERT(ggml_backend_buffer_is_host(tensor->buffer));
+
+        return {
+            GGML_BACKEND_SPLIT_AXIS_MIRRORED,
+            {0},
+            {1},
+            1
+        };
+    }
+
+    ggml_backend_meta_buffer_context * buf_ctx =
+        (ggml_backend_meta_buffer_context *) tensor->buffer->context;
+
+    return ggml_backend_meta_get_split_state(
+        buf_ctx->get_simple_tensor_container(tensor), tensor, assume_sync);
 }
 
 static void * ggml_backend_meta_buffer_get_base(ggml_backend_buffer_t buffer) {
@@ -1903,6 +1920,8 @@ struct ggml_backend_buffer * ggml_backend_meta_alloc_ctx_tensors_from_buft(struc
         // If a ggml_context only has zero-sized tensors, ggml_backend_alloc_ctx_tensors_from_buft returns NULL.
         // For those edge cases, allocate a dummy buffer instead.
         bool any_nonzero_slice = false;
+        size_t need = 0;
+
         for (ggml_tensor * t = ggml_get_first_tensor(ctx); t != nullptr; t = ggml_get_next_tensor(ctx, t)) {
             if (ggml_nelements(t) != 0) {
                 any_nonzero_slice = true;
@@ -1910,6 +1929,7 @@ struct ggml_backend_buffer * ggml_backend_meta_alloc_ctx_tensors_from_buft(struc
             }
         }
         if (any_nonzero_slice) {
+            need = ggml_backend_alloc_ctx_tensors_from_buft_size(ctx, simple_buft);
             meta_buf_ctx->bufs[i].reset(ggml_backend_alloc_ctx_tensors_from_buft(ctx, simple_buft));
         } else {
             meta_buf_ctx->bufs[i].reset(ggml_backend_buft_alloc_buffer(simple_buft, 0));
@@ -1917,7 +1937,25 @@ struct ggml_backend_buffer * ggml_backend_meta_alloc_ctx_tensors_from_buft(struc
                 t->buffer = meta_buf_ctx->bufs[i].get();
             }
         }
-        GGML_ASSERT(meta_buf_ctx->bufs[i]);
+        // removed for debuggin GGML_ASSERT(meta_buf_ctx->bufs[i]);
+        if (!meta_buf_ctx->bufs[i]) {
+            ggml_backend_dev_t dev = ggml_backend_buft_get_device(simple_buft);
+            size_t free = 0, total = 0;
+
+            if (dev) {
+                ggml_backend_dev_memory(dev, &free, &total);
+            }
+
+            GGML_ABORT(
+                "META ALLOC FAIL: shard=%zu/%zu buft=%s dev=%s need=%.2f MiB free=%zu MiB total=%zu MiB",
+                i,
+                n_simple_bufts,
+                ggml_backend_buft_name(simple_buft),
+                dev ? ggml_backend_dev_name(dev) : "unknown",
+                need / 1024.0 / 1024.0,
+                free / (1024*1024),
+                total / (1024*1024));
+        }
         meta_buf->size = std::max(meta_buf->size, ggml_backend_buffer_get_size(meta_buf_ctx->bufs[i].get()));
     }
     return meta_buf;
@@ -2176,8 +2214,20 @@ static enum ggml_status ggml_backend_meta_graph_compute(ggml_backend_t backend, 
                     bcj.nodes[i] = node;
                     continue;
                 }
+
+                if (!ggml_backend_buffer_is_meta(node->buffer)) {
+
+                    GGML_ASSERT(ggml_backend_buffer_is_host(node->buffer));
+
+                    // Host-backed view/reshape nodes are shared read-only metadata.
+                    // Both CPU shards can reference the same tensor.
+                    bcj.nodes[i] = node;
+                    continue;
+                }
+
                 bcj.nodes[i] = ggml_backend_meta_buffer_simple_tensor(node, j);
                 GGML_ASSERT(bcj.nodes[i]);
+
             }
         }
 

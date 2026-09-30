@@ -217,11 +217,61 @@ static bool llama_prepare_model_devices(const llama_model_params & params, llama
                 true, ggml_backend_meta_device(
                 params.devices, n_devs, llama_meta_device_get_split_state, &model->get_split_state_ud)
             });
-        } else {
-            for (ggml_backend_dev_t * dev = params.devices; *dev; ++dev) {
+
+    } else if (params.split_mode == LLAMA_SPLIT_MODE_LAYER) {
+        std::vector<ggml_backend_dev_t> numa_devs;
+
+        for (ggml_backend_dev_t * dev = params.devices; *dev; ++dev) {
+            if (llama_dev_numa_node(*dev) >= 0) {
+                numa_devs.push_back(*dev);
+            } else {
                 model->devices.push_back({false, *dev});
             }
         }
+
+        if (numa_devs.size() >= 2) {
+            model->get_split_state_ud.n_devices = numa_devs.size();
+            model->get_split_state_ud.model     = model;
+
+            auto * cpu_meta = ggml_backend_meta_device(
+                numa_devs.data(),
+                numa_devs.size(),
+                llama_meta_device_get_split_state,
+                &model->get_split_state_ud);
+
+            model->devices.push_back({true, cpu_meta});
+
+            // TEST: redirect CPU tensor overrides (e.g. -ncmoe) to NUMA CPU Meta.
+            if (params.tensor_buft_overrides) {
+                auto * overrides = const_cast<llama_model_tensor_buft_override *>(
+                params.tensor_buft_overrides);
+
+                for (; overrides->pattern != nullptr; ++overrides) {
+                   if (overrides->buft == ggml_backend_cpu_buffer_type()) {
+                       overrides->buft = ggml_backend_dev_buffer_type(cpu_meta);
+
+                       LLAMA_LOG_INFO(
+                            "%s: redirecting tensor override '%s' from CPU to %s\n",
+                            __func__,
+                            overrides->pattern,
+                            ggml_backend_buft_name(overrides->buft));
+                   }
+                }
+            }
+            LLAMA_LOG_INFO("%s: added CPU NUMA Meta device from %zu nodes\n",
+                       __func__, numa_devs.size());
+        } else {
+            for (auto * dev : numa_devs) {
+                model->devices.push_back({false, dev});
+            }
+        }
+    } else {
+        for (ggml_backend_dev_t * dev = params.devices; *dev; ++dev) {
+            model->devices.push_back({false, *dev});
+        }
+    }
+
+
     } else {
         // default device selection
 
