@@ -19,7 +19,7 @@ heavy data to the GPU while leaving less used fragments on the CPU(s).
  
 ## Results
 
-Here are the performance benefits of using this fork with the layour planner vs 
+Here are the performance benefits of using this fork with the layout planner vs 
 a standard invocation of llama.cpp. This combines both benefits listed above.
 
 ![Best tested fork placement versus vanilla default placement, using shared benchmark settings](llama_cpp_ng_vs_default_placement.png)
