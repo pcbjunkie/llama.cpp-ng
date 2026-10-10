@@ -9,21 +9,32 @@ models running across multiple NUMA nodes and small GPUs. Its placement planner
 selects a workable distribution of model weights, CPU Meta tensors, GPU layers,
 and selective MoE expert layers for the available hardware.
 
-The most important result is not a universal tokens-per-second number. Absolute
-throughput is specific to the model, quantization, hardware, context, and
-placement. The useful comparison is the relative speed of the best tested
-`llama.cpp-ng` placement against the best tested `llama.cpp` placement for the
-same model.
+The benefits from this particular fork are two fold. First llama.cpp-ng addresses 
+inefficient loading across NUMA sockets in multi CPU machines. It also adds support
+for models that failed to load in this new configuration.
 
-![Benchmark summary](llama_cpp_ng_benchmark_summary.png)
+Second the included memory placement planner attempts to optimize layer / tensor
+placement to optimize the performance of the model by moving computation 
+heavy data to the GPU while leaving less used fragments on the CPU(s).  
+ 
+## Results
+
+Here are the performance benefits of using this fork with the layour planner vs 
+a standard invocation of llama.cpp. This combines both benefits listed above.
 
 ![Best tested fork placement versus vanilla default placement, using shared benchmark settings](llama_cpp_ng_vs_default_placement.png)
 
-## Results
+Now, these are the results of just the NUMA aware CPU placement vs vanilla llama.cpp. 
+Both used the same planner placement strategy. 
 
-All values are generation tokens per second. “Best” means the best tested
-configuration selected with planner assistance; it does not mean the default
-configuration of either implementation.
+![Benchmark summary](llama_cpp_ng_benchmark_summary.png)
+
+The first graph uses best tested default vanilla llama.cpp as its baseline. 
+The second compares best tested llama.cpp-ng fork placement with llama.cpp  
+best placement derived using the placement tool with several thread, and numa
+(isolate, distribute) options that produced the best result. 
+
+The table lists both baselines; its gain column compares against best tested vanilla.
 
 | Model | Approx. total params | `llama.cpp` default | Best `llama.cpp` | Best `llama.cpp-ng` | Gain vs best `llama.cpp` |
 |---|---:|---:|---:|---:|---:|
@@ -39,15 +50,14 @@ configuration of either implementation.
 | Qwen3.5-397B Q6_K | ~397B | 2.62 | 2.67 | 4.18 | +56.4% |
 | Kimi K2 0905 Q2_K | ~1T | 2.41 | 2.41 | 3.68 | +52.8% |
 
-The Qwen3.5-35B result is effectively a tie. Across the ten larger models,
+The result is not a universal tokens-per-second number. Absolute
+throughput is specific to the model, quantization, hardware, context, and
+placement. 
+
+The Qwen3.5-35B result is effectively a tie and highlights that models that
+are heavily GPU bound do not gain much of a benefit. Across the ten larger models,
 `llama.cpp-ng` improves generation speed by 22.9%–68.8%, with a median gain of
 approximately 47.7%.
-
-The first graph uses best tested vanilla as its baseline. The second compares
-best tested fork placement with vanilla default placement. The table lists both
-vanilla baselines; its gain column compares against best tested vanilla.
-"Default" refers to placement; shared benchmark settings, including `-t 20`,
-were held fixed.
 
 ## Benchmark platform
 
