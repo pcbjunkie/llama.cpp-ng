@@ -19,12 +19,16 @@ heavy data to the GPU while leaving less used fragments on the CPU(s).
  
 ## Results
 
+**Default invocation of llamma.cpp vs llama.cpp-ng with layout planner.**
+
 Here are the performance benefits of using this fork with the layout planner vs 
 a standard invocation of llama.cpp. This combines both benefits listed above.
 
 ![Best tested fork placement versus vanilla default placement, using shared benchmark settings](llama_cpp_ng_vs_default_placement.png)
 
-Now, these are the results of just the NUMA aware CPU placement vs vanilla llama.cpp. 
+**Best placement llamma.cpp vs llama.cpp-ng with layout planner.**
+
+Here are the results of just the NUMA aware CPU placement vs vanilla llama.cpp. 
 Both used the same planner placement strategy. 
 
 ![Benchmark summary](llama_cpp_ng_benchmark_summary.png)
