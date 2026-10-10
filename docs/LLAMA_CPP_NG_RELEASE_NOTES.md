@@ -34,8 +34,8 @@ Both used the same planner placement strategy.
 ![Benchmark summary](llama_cpp_ng_benchmark_summary.png)
 
 The first graph uses best tested default vanilla llama.cpp as its baseline. 
-The second compares best tested llama.cpp-ng fork placement with llama.cpp  
-best placement derived using the placement tool with several thread, and numa
+The second compares best tested llama.cpp-ng fork placement with llama.cpp best
+placement derived using the placement tool with several thread, and numa
 (isolate, distribute) options that produced the best result. 
 
 The table lists both baselines; its gain column compares against best tested vanilla.
