@@ -462,20 +462,20 @@ struct ggml_backend_meta_split_state llama_meta_device_get_split_state(const str
             tensor_axis_0 = ud->model->get_tensor((prefix + suffix_fallback).c_str());
         }
         if (tensor_axis_0 == nullptr) {
-           // Tensors from skipped MTP/NextN layers are present in the GGUF but are not
-           // loaded into the model. They are never used by the main decoder graph, so
-           // their split layout is irrelevant; mirror them to satisfy meta-split.
+            // Tensors from skipped MTP/NextN layers are present in the GGUF but are not
+            // loaded into the model. They are never used by the main decoder graph, so
+            // their split layout is irrelevant; mirror them to satisfy meta-split.
+            const bool is_skipped_nextn =
+                tensor_name.substr(0, 4) == "blk." &&
+                hparams.n_layer_nextn > 0 &&
+                il >= hparams.n_layer() &&
+                il < hparams.n_layer_all;
 
-           const bool is_skipped_nextn = 
-               tensor_name.substr(0, 4) == "blk." && 
-               hparams.n_layer_nextn > 0 && 
-               il >= hparams.n_layer() && il < hparams.n_layer_all;
+            // Cache tensors can likewise belong to skipped MTP/NextN layers.
+            const bool is_cache = tensor_name.substr(0, 6) == "cache_";
 
-           // Cache tensors can likewise belong to skipped MTP/NextN layers.
-           const bool is_cache = tensor_name.substr(0, 6) == "cache_";
-
-           GGML_ASSERT(is_cache || is_skipped_nextn);
-           return {GGML_BACKEND_SPLIT_AXIS_MIRRORED, tensor, il, rotation};
+            GGML_ASSERT(is_cache || is_skipped_nextn);
+            return {GGML_BACKEND_SPLIT_AXIS_MIRRORED, tensor, il, rotation};
         }
         return {axis, tensor_axis_0, il, rotation};
     };
