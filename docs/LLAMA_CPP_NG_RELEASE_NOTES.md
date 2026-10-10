@@ -9,8 +9,8 @@ models running across multiple NUMA nodes and small GPUs. Its placement planner
 selects a workable distribution of model weights, CPU Meta tensors, GPU layers,
 and selective MoE expert layers for the available hardware.
 
-The benefits from this particular fork are two fold. First llama.cpp-ng addresses 
-inefficient loading across NUMA sockets in multi CPU machines. It also adds support
+The benefits from this particular fork are twofold. First llama.cpp-ng addresses 
+inefficient loading across NUMA sockets in multi-CPU machines. It also adds support
 for models that failed to load in this new configuration.
 
 Second the included memory placement planner attempts to optimize layer / tensor
@@ -28,8 +28,9 @@ a standard invocation of llama.cpp. This combines both benefits listed above.
 
 **Best placement llama.cpp vs llama.cpp-ng with layout planner.**
 
-Here are the results of just the NUMA aware CPU placement vs vanilla llama.cpp. 
-Both used the same planner placement strategy. 
+This graph compares the best planner-assisted placements tested for llama.cpp
+and llama.cpp-ng. The remaining advantage reflects the fork’s NUMA-aware CPU
+Meta placement and fork-specific loading and placement behavior.
 
 ![Benchmark summary](llama_cpp_ng_benchmark_summary.png)
 
@@ -126,7 +127,6 @@ Additional methodology:
 - The filesystem/page cache was cleared before each benchmark process.
 - Each result used three repetitions.
 - Model loading occurred before the timed inference measurements.
-  `--load-mode none` selected loading into allocated buffers rather than memory mapping.
 - Prompt processing used 64 tokens (`-p 64`).
 - Generation used 32 tokens (`-n 32`).
 - Batch size was 128 and physical microbatch size was 64.
