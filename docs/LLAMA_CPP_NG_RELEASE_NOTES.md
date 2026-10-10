@@ -9,12 +9,12 @@ models running across multiple NUMA nodes and small GPUs. Its placement planner
 selects a workable distribution of model weights, CPU Meta tensors, GPU layers,
 and selective MoE expert layers for the available hardware.
 
-The benefits from this particular fork are twofold. First llama.cpp-ng addresses 
-inefficient loading across NUMA sockets in multi-CPU machines. It also adds support
-for models that failed to load in this new configuration.
+The benefits from this particular fork are twofold. First, llama.cpp-ng addresses
+inefficient model loading and memory placement across NUMA sockets in multi-socket
+machines. It also adds support for models that failed to load in this new configuration.
 
-Second the included memory placement planner attempts to optimize layer / tensor
-placement to optimize the performance of the model by moving computation 
+Second, the included memory placement planner attempts to optimize layer/tensor
+placement to improve performance of the model by moving computation 
 heavy data to the GPU while leaving less used fragments on the CPU(s).  
  
 ## Results
