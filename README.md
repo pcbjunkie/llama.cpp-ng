@@ -20,13 +20,7 @@ What it adds:
   CPU backend (block-interleaved K-quant kernels, cache-line-aware matvec
   partitioning, better thread scheduling for small ops and MoE dispatch).
 
-Benchmarks across a range of models and quantizations are being prepared and
-will be published here. The generally useful pieces are being submitted
-upstream; this fork carries them today, integrated and tested together.
-
----
-
-![RELEASE NOTES](https://github.com/pcbjunkie/llama.cpp-ng/blob/master/docs/LLAMA_CPP_NG_RELEASE_NOTES.md)
+![Placement Planner Release Notes and Benchmarks](https://github.com/pcbjunkie/llama.cpp-ng/blob/master/docs/LLAMA_CPP_NG_RELEASE_NOTES.md)
 
 The original llama.cpp README follows below.
 
