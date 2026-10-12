@@ -19,8 +19,13 @@ What it adds:
 - **Generic CPU optimizations** — improved x86 kernels and scheduling in the
   CPU backend (block-interleaved K-quant kernels, cache-line-aware matvec
   partitioning, better thread scheduling for small ops and MoE dispatch).
+- **Model Layout Planner** — A separate placement assist tool that attempts
+  to optimize model memory layout on GPUs and CPUs for improved performance.
+  Ideal for getting improved model performance without having to understand
+  llama.cpp CLI options and getting a good baseline without having to test
+  and benchmark each permutation of the possible placement layouts.
 
-![Placement Planner Release Notes and Benchmarks](https://github.com/pcbjunkie/llama.cpp-ng/blob/master/docs/LLAMA_CPP_NG_RELEASE_NOTES.md)
+[Placement Planner Release Notes and Benchmarks](https://github.com/pcbjunkie/llama.cpp-ng/blob/master/docs/LLAMA_CPP_NG_RELEASE_NOTES.md)
 
 The original llama.cpp README follows below.
 
